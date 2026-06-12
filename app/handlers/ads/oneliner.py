@@ -68,9 +68,9 @@ async def oneliner_entry(
         f"{description}\n\n"
         f"💰 <b>تعرفه (بر اساس ۷ روز = {fa_number(weekly_price)} تومان):</b>\n"
         f"• 7 روز — {fa_number(weekly_price)} تومان\n"
-        f"• 14 روز — {fa_number(weekly_price * 2 * 0.90):,.0f} تومان (10٪ تخفیف)\n"
-        f"• 21 روز — {fa_number(weekly_price * 3 * 0.80):,.0f} تومان (20٪ تخفیف)\n"
-        f"• 30 روز — {fa_number(weekly_price * 4.3 * 0.70):,.0f} تومان (30٪ تخفیف)\n\n"
+        f"• 14 روز — {fa_number(weekly_price * 2 * 0.90)} تومان (10٪ تخفیف)\n"
+        f"• 21 روز — {fa_number(weekly_price * 3 * 0.80)} تومان (20٪ تخفیف)\n"
+        f"• 30 روز — {fa_number(weekly_price * 4.3 * 0.70)} تومان (30٪ تخفیف)\n\n"
         "✏️ <b>متن تبلیغ خود را ارسال کنید:</b>\n"
         "<i>مثال: فیلترشکن نت ملی ☄</i>"
     )
@@ -116,9 +116,9 @@ async def oneliner_get_link(message: Message, state: FSMContext, **kwargs) -> No
     await message.answer(
         "⏳ <b>مدت تبلیغ را انتخاب کنید:</b>\n\n"
         f"• 7 روز — {fa_number(wp)} تومان\n"
-        f"• 14 روز — {fa_number(wp * 2 * 0.90):,.0f} تومان\n"
-        f"• 21 روز — {fa_number(wp * 3 * 0.80):,.0f} تومان\n"
-        f"• 30 روز — {fa_number(wp * 4.3 * 0.70):,.0f} تومان",
+        f"• 14 روز — {fa_number(wp * 2 * 0.90)} تومان\n"
+        f"• 21 روز — {fa_number(wp * 3 * 0.80)} تومان\n"
+        f"• 30 روز — {fa_number(wp * 4.3 * 0.70)} تومان",
         reply_markup=duration_oneliner_kb(),
     )
 
