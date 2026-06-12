@@ -97,13 +97,18 @@ class AdService:
     async def apply_discount(
         self, ad: Ad, code: str, discount_type: str, discount_value: float
     ) -> Ad:
+        # تخفیف باید روی قیمت نهایی (قیمت بنر + ریپلای + پین) اعمال شود،
+        # نه فقط روی قیمت پایه‌ی بنر.
+        pre_discount_total = ad.base_price + (ad.reply_price or 0.0) + (ad.pin_price or 0.0)
+
         if discount_type == "percent":
-            discount_amount = ad.base_price * (discount_value / 100)
+            discount_amount = pre_discount_total * (discount_value / 100)
         else:
             discount_amount = discount_value
+
         ad.discount_code = code
-        ad.discount_amount = min(discount_amount, ad.base_price)
-        ad.final_price = max(0.0, ad.base_price - ad.discount_amount)
+        ad.discount_amount = min(discount_amount, pre_discount_total)
+        ad.final_price = max(0.0, pre_discount_total - ad.discount_amount)
         ad.updated_at = datetime.utcnow()
         return await self._repo.save(ad)
 
