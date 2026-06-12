@@ -5,12 +5,7 @@ from datetime import datetime, timezone
 
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import (
-    Animation,
-    Message,
-    PhotoSize,
-    Video,
-)
+from aiogram.types import Message
 
 from app.core.config import config
 from app.core.database import AsyncSessionFactory
@@ -26,52 +21,9 @@ from app.utils.date_helper import now_tehran
 router = Router(name="meme")
 logger = logging.getLogger(__name__)
 
-_ALLOWED_TYPES = ("photo", "video", "animation")
 
-
-# ── Entry point ────────────────────────────────────────────────────────────────
-@router.message(F.text == "🎭 ارسال میم")
-async def meme_entry(message: Message, state: FSMContext, user: User, is_admin: bool, **kwargs) -> None:
-    async with AsyncSessionFactory() as session:
-        settings = SettingsService(session)
-        locked = await settings.get_bool("bot_locked")
-
-    if locked and not is_admin:
-        await message.answer("🔒 ربات در حال حاضر قفل است. لطفاً بعداً امتحان کنید.")
-        return
-
-    async with AsyncSessionFactory() as session:
-        user_svc = UserService(session)
-        fresh = await user_svc.get_by_telegram_id(user.telegram_id)
-        if not fresh:
-            await message.answer("خطا در بارگذاری اطلاعات.")
-            return
-
-        if not is_admin and await user_svc.is_effectively_banned(fresh):
-            await message.answer("🚫 حساب شما مسدود است و امکان ارسال میم ندارید.")
-            return
-
-        if not is_admin:
-            # Check daily limit
-            limit = await _get_daily_limit(fresh, session)
-            today_count = await _count_today_memes(fresh.id, session)
-            if limit is not None and today_count >= limit:
-                await message.answer(
-                    f"⛔ شما به محدودیت روزانه ارسال میم ({limit} عدد) رسیده‌اید.\n"
-                    "فردا دوباره تلاش کنید."
-                )
-                return
-
-    await state.set_state(MemeSubmitStates.waiting_media)
-    await message.answer(
-        "🎭 <b>ارسال میم</b>\n\n"
-        "عکس، ویدیو یا گیف خود را ارسال کنید:",
-        reply_markup=cancel_kb(),
-    )
-
-
-async def _get_daily_limit(user: User, session) -> int | None:
-    """Returns None if unlimited, otherwise the numeric limit."""
+async def _get_effective_daily_limit(user: User, session) -> int | None:
+    """None = بی‌نهایت، عدد = محدودیت"""
     if user.no_limit:
         return None
     if user.custom_daily_limit is not None:
@@ -84,10 +36,57 @@ async def _count_today_memes(user_id: int, session) -> int:
     from app.repositories.meme_repo import MemeRepository
     repo = MemeRepository(session)
     today_start = now_tehran().replace(hour=0, minute=0, second=0, microsecond=0)
-    return await repo.count_today_by_user(user_id, today_start.astimezone(timezone.utc))
+    return await repo.count_today_by_user(
+        user_id, today_start.astimezone(timezone.utc)
+    )
 
 
-# ── Receive media ──────────────────────────────────────────────────────────────
+@router.message(F.text == "🎭 ارسال میم")
+async def meme_entry(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    is_admin: bool,
+    **kwargs,
+) -> None:
+    async with AsyncSessionFactory() as session:
+        settings_svc = SettingsService(session)
+        locked = await settings_svc.get_bool("bot_locked")
+        if locked and not is_admin:
+            await message.answer("🔒 ربات در حال حاضر قفل است.")
+            return
+
+        # بن چک
+        user_svc = UserService(session)
+        fresh = await user_svc.get_by_telegram_id(user.telegram_id)
+        if not fresh:
+            return
+
+        if not is_admin and await user_svc.is_effectively_banned(fresh):
+            await message.answer("🚫 حساب شما مسدود است.")
+            return
+
+        if not is_admin:
+            limit = await _get_effective_daily_limit(fresh, session)
+            today_count = await _count_today_memes(fresh.id, session)
+
+            if limit is not None and today_count >= limit:
+                # ← نمایش محدودیت واقعی از دیتابیس
+                await message.answer(
+                    f"⛔ شما به محدودیت روزانه ارسال میم "
+                    f"(<b>{limit}</b> عدد) رسیده‌اید.\n\n"
+                    "فردا دوباره تلاش کنید. 🌙"
+                )
+                return
+
+    await state.set_state(MemeSubmitStates.waiting_media)
+    await message.answer(
+        "🎭 <b>ارسال میم</b>\n\n"
+        "عکس، ویدیو یا گیف خود را ارسال کنید:",
+        reply_markup=cancel_kb(),
+    )
+
+
 @router.message(MemeSubmitStates.waiting_media, F.photo | F.video | F.animation)
 async def meme_receive_media(
     message: Message,
@@ -97,7 +96,6 @@ async def meme_receive_media(
     bot: Bot,
     **kwargs,
 ) -> None:
-    # Determine file type and file_id
     if message.photo:
         file_id = message.photo[-1].file_id
         file_type = "photo"
@@ -108,17 +106,26 @@ async def meme_receive_media(
         file_id = message.animation.file_id
         file_type = "gif"
     else:
-        await message.answer("نوع فایل پشتیبانی نمی‌شود.")
         return
 
     async with AsyncSessionFactory() as session:
         meme_svc = MemeService(session)
         user_svc = UserService(session)
 
-        # Re-check ban inside transaction
         fresh = await user_svc.get_by_telegram_id(user.telegram_id)
         if not fresh:
             return
+
+        # دوباره چک محدودیت (thread-safe)
+        if not is_admin:
+            limit = await _get_effective_daily_limit(fresh, session)
+            today_count = await _count_today_memes(fresh.id, session)
+            if limit is not None and today_count >= limit:
+                await message.answer(
+                    f"⛔ محدودیت روزانه (<b>{limit}</b> عدد) پر شده."
+                )
+                await state.clear()
+                return
 
         meme = await meme_svc.submit(
             user_id=fresh.id,
@@ -129,15 +136,14 @@ async def meme_receive_media(
         meme_id = meme.id
 
     await state.clear()
-
     await message.answer(
-        "✅ میم شما دریافت شد و در صف بررسی قرار گرفت.\n"
-        "پس از تایید توسط ادمین، به شما اطلاع داده می‌شود.",
+        "✅ <b>میم شما دریافت شد!</b>\n\n"
+        "میم شما در صف بررسی قرار گرفت.\n"
+        "پس از تایید ادمین به شما اطلاع داده می‌شود. 🎭",
         reply_markup=main_menu_kb(is_admin=is_admin),
     )
 
-    # Forward to admin group for review
-    await _send_to_admin_group(bot, message, file_id, file_type, meme_id, user, fresh.id)
+    await _send_to_admin_group(bot, message, file_id, file_type, meme_id, user)
 
 
 async def _send_to_admin_group(
@@ -147,18 +153,18 @@ async def _send_to_admin_group(
     file_type: str,
     meme_id: int,
     user: User,
-    db_user_id: int,
 ) -> None:
     if not config.admin_group_id:
-        logger.warning("ADMIN_GROUP_ID not set; cannot send meme for review.")
+        logger.warning("ADMIN_GROUP_ID تنظیم نشده!")
         return
 
     caption = (
-        f"🎭 <b>میم جدید برای بررسی</b>\n\n"
-        f"👤 کاربر: {user.full_name}"
-        f"{' (@' + user.username + ')' if user.username else ''}\n"
-        f"🆔 آیدی: <code>{user.telegram_id}</code>\n"
-        f"📋 شناسه میم: <code>{meme_id}</code>"
+        f"🎭 <b>میم جدید — بررسی لازم است</b>\n"
+        f"{'━' * 25}\n"
+        f"👤 <b>{user.full_name}</b>"
+        f"{f' (@{user.username})' if user.username else ''}\n"
+        f"🆔 <code>{user.telegram_id}</code>\n"
+        f"📋 شناسه میم: <code>#{meme_id}</code>"
     )
 
     try:
@@ -176,7 +182,7 @@ async def _send_to_admin_group(
                 caption=caption,
                 reply_markup=meme_review_kb(meme_id),
             )
-        else:  # gif
+        else:
             sent = await bot.send_animation(
                 config.admin_group_id,
                 animation=file_id,
@@ -184,7 +190,6 @@ async def _send_to_admin_group(
                 reply_markup=meme_review_kb(meme_id),
             )
 
-        # Save reviewer_message_id
         async with AsyncSessionFactory() as session:
             from app.repositories.meme_repo import MemeRepository
             repo = MemeRepository(session)
@@ -194,11 +199,9 @@ async def _send_to_admin_group(
                 await session.commit()
 
     except Exception as exc:
-        logger.error("Failed to send meme to admin group: %s", exc)
+        logger.error("خطا در ارسال میم به گروه ادمین: %s", exc)
 
 
 @router.message(MemeSubmitStates.waiting_media)
 async def meme_wrong_type(message: Message, **kwargs) -> None:
-    await message.answer(
-        "⚠️ لطفاً فقط عکس، ویدیو یا گیف ارسال کنید."
-    )
+    await message.answer("⚠️ لطفاً فقط عکس، ویدیو یا گیف ارسال کنید.")
