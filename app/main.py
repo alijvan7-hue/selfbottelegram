@@ -123,7 +123,9 @@ async def _set_bot_commands(bot_instance: Bot) -> None:
                 scope=BotCommandScopeChat(chat_id=admin_id),
             )
         except Exception as exc:
-            logger.warning("Could not set admin commands for %s: %s", admin_id, exc)
+            logger.warning(
+                "Could not set admin commands for %s: %s", admin_id, exc
+            )
 
 
 async def on_startup() -> None:
@@ -177,9 +179,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())        settings_router,
-        revenue_router,
-        stats_router,
-        logs_router,
-        guide_router,  # ← جدید
-    )
+    asyncio.run(main())
