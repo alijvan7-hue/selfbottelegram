@@ -28,12 +28,10 @@ async def send_payment_options(bot: Bot, user_telegram_id: int, ad_id: int, ad) 
         settings_svc = SettingsService(session)
         _ = settings_svc  # used below
 
-    text = (
-        f"✅ <b>تبلیغ شما تایید شد!</b>\n\n"
-        f"💰 مبلغ اصلی: <b>{fa_number(ad.base_price)} تومان</b>\n"
-        f"✅ مبلغ نهایی: <b>{fa_number(ad.final_price)} تومان</b>\n\n"
-        "برای ادامه، کد تخفیف وارد کنید یا مستقیم پرداخت کنید:"
-    )
+    text = "✅ <b>تبلیغ شما تایید شد!</b>\n\n"
+    text += _price_breakdown(ad)
+    text += "\n\nبرای ادامه، کد تخفیف وارد کنید یا مستقیم پرداخت کنید:"
+
     try:
         await bot.send_message(
             user_telegram_id,
@@ -42,6 +40,26 @@ async def send_payment_options(bot: Bot, user_telegram_id: int, ad_id: int, ad) 
         )
     except Exception as exc:
         logger.error("Failed to send payment options to user %s: %s", user_telegram_id, exc)
+
+
+def _price_breakdown(ad) -> str:
+    """Build the price breakdown text (بدون مبلغ اصلی)."""
+    lines: list[str] = []
+
+    if ad.ad_type == "banner":
+        lines.append(f"💰 قیمت بنر: <b>{fa_number(ad.base_price)} تومان</b>")
+        if ad.reply_price:
+            lines.append(f"💬 ریپلای: <b>+{fa_number(ad.reply_price)} تومان</b>")
+        if ad.pin_price:
+            lines.append(f"📌 پین: <b>+{fa_number(ad.pin_price)} تومان</b>")
+    else:
+        lines.append(f"💰 قیمت پایه: <b>{fa_number(ad.base_price)} تومان</b>")
+
+    if ad.discount_amount:
+        lines.append(f"🏷 تخفیف: <b>-{fa_number(ad.discount_amount)} تومان</b>")
+
+    lines.append(f"✅ قیمت نهایی: <b>{fa_number(ad.final_price)} تومان</b>")
+    return "\n".join(lines)
 
 
 # ── Discount code entry ───────────────────────────────────────────────────────
@@ -112,9 +130,7 @@ async def _process_discount(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(
         f"✅ کد تخفیف اعمال شد!\n\n"
-        f"💰 مبلغ اصلی: <b>{fa_number(ad.base_price)} تومان</b>\n"
-        f"🏷 تخفیف: <b>{fa_number(ad.discount_amount)} تومان</b>\n"
-        f"✅ مبلغ نهایی: <b>{fa_number(ad.final_price)} تومان</b>\n\n"
+        f"{_price_breakdown(ad)}\n\n"
         "برای پرداخت، روی دکمه زیر بزنید:",
         reply_markup=payment_options_kb(ad_id),
     )
@@ -240,9 +256,7 @@ async def _send_receipt_to_admin(
         f"🆔 <code>{user.telegram_id}</code>\n"
         f"📋 شناسه تبلیغ: <code>{ad_id}</code>\n"
         f"📌 نوع: {'بنری' if ad.ad_type == 'banner' else 'تک خطی'}\n\n"
-        f"💰 مبلغ اصلی: {fa_number(ad.base_price)} تومان\n"
-        f"🏷 تخفیف: {fa_number(ad.discount_amount)} تومان\n"
-        f"✅ مبلغ نهایی: {fa_number(ad.final_price)} تومان"
+        f"{_price_breakdown(ad)}"
     )
 
     try:
