@@ -10,6 +10,10 @@ def meme_review_kb(meme_id: int) -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="✅ تایید", callback_data=f"meme_approve:{meme_id}"),
         InlineKeyboardButton(text="❌ رد", callback_data=f"meme_reject:{meme_id}"),
     )
+    builder.row(
+        InlineKeyboardButton(text="⚠️ مورد دار", callback_data=f"meme_warn:{meme_id}"),
+        InlineKeyboardButton(text="🌟 شاهکار", callback_data=f"meme_master:{meme_id}"),
+    )
     return builder.as_markup()
 
 
