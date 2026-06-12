@@ -31,6 +31,7 @@ class AdService:
         extra_description: Optional[str],
         duration_hours: int,
         wants_reply: bool,
+        reply_text: Optional[str],
         wants_pin: bool,
         base_price: float,
         reply_price: float,
@@ -46,6 +47,7 @@ class AdService:
             extra_description=extra_description,
             duration_hours=duration_hours,
             wants_reply=wants_reply,
+            reply_text=reply_text,
             wants_pin=wants_pin,
             base_price=base_price,
             reply_price=reply_price,
@@ -99,7 +101,6 @@ class AdService:
             discount_amount = ad.base_price * (discount_value / 100)
         else:
             discount_amount = discount_value
-
         ad.discount_code = code
         ad.discount_amount = min(discount_amount, ad.base_price)
         ad.final_price = max(0.0, ad.base_price - ad.discount_amount)
@@ -121,11 +122,9 @@ class AdService:
         ad.updated_at = now
         if reply_text:
             ad.reply_text = reply_text
-
         if ad.ad_type == "banner":
             publish_at = await self._calculate_banner_publish_time()
             ad.publish_at = publish_at
-
         return await self._repo.save(ad)
 
     async def reject_payment(self, ad: Ad) -> Ad:
@@ -133,7 +132,7 @@ class AdService:
         ad.updated_at = datetime.utcnow()
         return await self._repo.save(ad)
 
-    async def _calculate_banner_publish_time(self) -> Optional[datetime]:
+    async def _calculate_banner_publish_time(self) -> datetime:
         queue_repo = QueueRepository(self._session)
         entry = await queue_repo.get_next_in_window(17, 20)
         if entry:
@@ -147,7 +146,9 @@ class AdService:
         if not config.channel_id:
             return False
         try:
-            sent = await self._publish_banner(ad, bot)
+            # دریافت کپشن هوشمند
+            smart_caption = await self._get_smart_caption()
+            sent = await self._publish_banner(ad, bot, smart_caption)
             if not sent:
                 return False
 
@@ -160,7 +161,7 @@ class AdService:
             if ad.duration_hours:
                 ad.expires_at = datetime.now(timezone.utc) + timedelta(hours=ad.duration_hours)
 
-            # اگر پین می‌خواهد
+            # پین
             if ad.wants_pin and config.channel_id:
                 try:
                     await bot.pin_chat_message(
@@ -171,11 +172,11 @@ class AdService:
                 except Exception as e:
                     logger.warning("پین ناموفق: %s", e)
 
-            # زمان ریپلای (10-15 دقیقه بعد)
+            # زمان‌بندی ریپلای (10-15 دقیقه بعد)
             if ad.wants_reply and ad.reply_text:
                 reply_delay = random.randint(10, 15)
                 ad.publish_at = datetime.now(timezone.utc) + timedelta(minutes=reply_delay)
-                ad.reply_message_id = -1  # pending reply
+                ad.reply_message_id = -1  # pending
 
             await self._repo.save(ad)
             return True
@@ -184,20 +185,30 @@ class AdService:
             logger.error("خطا در انتشار تبلیغ %s: %s", ad.id, exc)
             return False
 
-    async def _publish_banner(self, ad: Ad, bot: Bot):
-        caption_parts = [ad.text]
+    async def _get_smart_caption(self) -> str:
+        """دریافت کپشن هوشمند از settings"""
+        svc = SettingsService(self._session)
+        caption = await svc.get("smart_caption")
+        if not caption:
+            caption = "✖️Check it:\n➡️@Teriak18"
+        return caption
+
+    async def _publish_banner(self, ad: Ad, bot: Bot, smart_caption: str):
+        content_parts = [ad.text]
         if ad.extra_description:
-            caption_parts.append(f"\n{ad.extra_description}")
-        caption = "\n".join(caption_parts)
+            content_parts.append(f"\n{ad.extra_description}")
+        # اضافه کردن کپشن هوشمند
+        content_parts.append(f"\n\n{smart_caption}")
+        full_text = "\n".join(content_parts)
 
         if ad.image_file_id:
             return await bot.send_photo(
                 config.channel_id,
                 photo=ad.image_file_id,
-                caption=caption,
+                caption=full_text,
             )
         else:
-            return await bot.send_message(config.channel_id, text=caption)
+            return await bot.send_message(config.channel_id, text=full_text)
 
     async def send_auto_reply(self, ad: Ad, bot: Bot) -> bool:
         if not ad.reply_text or not ad.channel_message_id:
@@ -211,6 +222,7 @@ class AdService:
             ad.reply_message_id = sent.message_id
             ad.updated_at = datetime.utcnow()
             await self._repo.save(ad)
+            logger.info("✅ ریپلای خودکار برای تبلیغ %s ارسال شد", ad.id)
             return True
         except Exception as exc:
             logger.error("ریپلای ناموفق: %s", exc)
@@ -228,7 +240,6 @@ class AdService:
                     await bot.delete_message(config.channel_id, ad.reply_message_id)
                 except Exception:
                     pass
-
             ad.status = "expired"
             ad.updated_at = datetime.utcnow()
             await self._repo.save(ad)
