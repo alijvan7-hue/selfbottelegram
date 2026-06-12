@@ -97,8 +97,8 @@ async def _seed_initial_data() -> None:
             "smart_caption": "✖️Check it:\n➡️@Teriak18",
             "oneliner_sample_image": "",
             "oneliner_description": "برای مشاهده نمونه تبلیغات تک خطی به تصویر بالا توجه کنید.",
-            "ad_limit_count": "2",
-            "ad_limit_hours": "4",
+            "ad_limit_count": "4",
+            "ad_limit_hours": "2",
         }
 
         for key, value in defaults.items():
