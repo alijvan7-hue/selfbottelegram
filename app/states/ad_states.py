@@ -7,6 +7,7 @@ class BannerAdStates(StatesGroup):
     waiting_extra = State()
     waiting_duration = State()
     waiting_reply_choice = State()
+    waiting_reply_text = State()      # ← جدید: متن ریپلای از کاربر
     waiting_pin_choice = State()
     waiting_discount = State()
     waiting_receipt = State()
