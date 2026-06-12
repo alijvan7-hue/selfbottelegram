@@ -15,12 +15,17 @@ logger = logging.getLogger(__name__)
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext, is_admin: bool, **kwargs) -> None:
+async def cmd_start(
+    message: Message,
+    state: FSMContext,
+    is_admin: bool,
+    **kwargs,
+) -> None:
     await state.clear()
     name = message.from_user.full_name if message.from_user else "کاربر"
     await message.answer(
         f"👋 سلام <b>{name}</b>!\n\n"
-        "به ربات میم و تبلیغات خوش آمدید.\n"
+        "به ربات میم و تبلیغات 🪷تریاک خوش آمدید.\n"
         "از منوی زیر گزینه مورد نظر را انتخاب کنید:",
         reply_markup=main_menu_kb(is_admin=is_admin),
     )
@@ -28,24 +33,34 @@ async def cmd_start(message: Message, state: FSMContext, is_admin: bool, **kwarg
 
 @router.message(Command("help"))
 async def cmd_help(message: Message, is_admin: bool, **kwargs) -> None:
-    text = (
+    await message.answer(
         "📖 <b>راهنمای ربات</b>\n\n"
-        "🎭 <b>ارسال میم</b> – میم خود را ارسال کنید\n"
-        "📢 <b>تبلیغات</b> – ثبت تبلیغ بنری یا تک خطی\n"
-        "📊 <b>اطلاعات من</b> – مشاهده آمار و توکن‌ها\n"
-        "🏆 <b>لیدربرد</b> – رتبه‌بندی کاربران\n"
-        "📞 <b>پشتیبانی</b> – ارتباط با پشتیبانی\n"
+        "🎭 <b>ارسال میم</b> — میم خود را ارسال کنید\n"
+        "📢 <b>تبلیغات</b> — ثبت تبلیغ بنری یا تک خطی\n"
+        "📊 <b>اطلاعات من</b> — مشاهده آمار و توکن‌ها\n"
+        "🏆 <b>لیدربرد</b> — رتبه‌بندی کاربران\n"
+        "📞 <b>پشتیبانی</b> — ارتباط با پشتیبانی\n",
+        reply_markup=main_menu_kb(is_admin=is_admin),
     )
-    await message.answer(text, reply_markup=main_menu_kb(is_admin=is_admin))
 
 
 @router.message(F.text == "🔙 بازگشت")
-async def back_to_main(message: Message, state: FSMContext, is_admin: bool, **kwargs) -> None:
+async def back_to_main(
+    message: Message,
+    state: FSMContext,
+    is_admin: bool,
+    **kwargs,
+) -> None:
     await state.clear()
     await message.answer("منوی اصلی:", reply_markup=main_menu_kb(is_admin=is_admin))
 
 
 @router.message(F.text == "❌ انصراف")
-async def cancel_action(message: Message, state: FSMContext, is_admin: bool, **kwargs) -> None:
+async def cancel_action(
+    message: Message,
+    state: FSMContext,
+    is_admin: bool,
+    **kwargs,
+) -> None:
     await state.clear()
     await message.answer("عملیات لغو شد.", reply_markup=main_menu_kb(is_admin=is_admin))
