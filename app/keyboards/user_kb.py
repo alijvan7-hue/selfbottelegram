@@ -71,7 +71,8 @@ def duration_banner_kb() -> ReplyKeyboardMarkup:
     )
 
 
-def duration_oneliner_kb() -> ReplyKeyboardMarkup:
+def duration_kb() -> ReplyKeyboardMarkup:
+    """تبلیغات تک خطی — مدت زمان"""
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="7 روز"), KeyboardButton(text="14 روز")],
@@ -80,3 +81,8 @@ def duration_oneliner_kb() -> ReplyKeyboardMarkup:
         ],
         resize_keyboard=True,
     )
+
+
+def duration_oneliner_kb() -> ReplyKeyboardMarkup:
+    """آلیاس برای duration_kb"""
+    return duration_kb()
