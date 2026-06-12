@@ -31,9 +31,13 @@ _SETTING_LABELS: dict[str, str] = {
     "card_number": "شماره کارت",
     "card_owner": "نام صاحب کارت",
     "support_id": "آیدی پشتیبانی",
-    "oneliner_description": "توضیحات تبلیغ تک خطی",
     "queue_paused": "صف متوقف (true/false)",
     "bot_locked": "ربات قفل (true/false)",
+    "smart_caption": "کپشن هوشمند زیر پست‌ها",
+    "oneliner_sample_image": "عکس نمونه تک‌خطی (file_id)",
+    "oneliner_description": "توضیحات اولیه تک‌خطی",
+    "ad_limit_count": "محدودیت تعداد تبلیغ",
+    "ad_limit_hours": "بازه زمانی محدودیت تبلیغ (ساعت)",
 }
 
 
