@@ -14,16 +14,28 @@ router = Router(name="leaderboard")
 _MEDALS = ["🥇", "🥈", "🥉"]
 
 
-def _build_leaderboard(users, title: str) -> str:
+async def _build_leaderboard(users, title: str, monthly: bool = False) -> str:
     if not users:
         return f"🏆 <b>{title}</b>\n\nهنوز کسی در لیدربرد نیست!"
 
-    lines = [f"🏆 <b>{title}</b>\n"]
-    for i, u in enumerate(users):
-        medal = _MEDALS[i] if i < 3 else f"{i + 1}."
-        name = u.full_name or u.username or str(u.telegram_id)
-        tokens = u.monthly_tokens if "ماهانه" in title else u.tokens
-        lines.append(f"{medal} <b>{name}</b> — {fa_number(tokens)} توکن")
+    async with AsyncSessionFactory() as session:
+        svc = UserService(session)
+        lines = [f"🏆 <b>{title}</b>\n{'━' * 20}\n"]
+
+        for i, u in enumerate(users):
+            medal = _MEDALS[i] if i < 3 else f"{i + 1}."
+            name = u.full_name or u.username or str(u.telegram_id)
+            tokens = u.monthly_tokens if monthly else u.tokens
+
+            # دریافت سطح کاربر
+            level = await svc.get_level(u)
+            level_badge = f" [{level.name}]" if level else ""
+
+            lines.append(
+                f"{medal} <b>{name}</b>{level_badge}\n"
+                f"   🪙 {fa_number(tokens)} توکن"
+            )
+
     return "\n".join(lines)
 
 
@@ -38,7 +50,8 @@ async def overall_leaderboard(message: Message, **kwargs) -> None:
     async with AsyncSessionFactory() as session:
         svc = UserService(session)
         users = await svc.get_top_overall(10)
-    await message.answer(_build_leaderboard(users, "لیدربرد کلی"))
+    text = await _build_leaderboard(users, "لیدربرد کلی", monthly=False)
+    await message.answer(text)
 
 
 @router.message(F.text == "🏆 لیدربرد ماهانه")
@@ -46,4 +59,5 @@ async def monthly_leaderboard(message: Message, **kwargs) -> None:
     async with AsyncSessionFactory() as session:
         svc = UserService(session)
         users = await svc.get_top_monthly(10)
-    await message.answer(_build_leaderboard(users, "لیدربرد ماهانه"))
+    text = await _build_leaderboard(users, "لیدربرد ماهانه", monthly=True)
+    await message.answer(text)
