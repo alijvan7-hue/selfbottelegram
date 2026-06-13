@@ -61,12 +61,12 @@ async def oneliner_entry(
         description = await settings_svc.get("oneliner_description") or ""
 
     await state.set_state(OnelineAdStates.waiting_text)
-    await state.update_data(weekly_price=weekly_price, discount_applied=False)
+    await state.update_data(weekly_price=weekly_price)
 
     intro = (
         f"📢 <b>تبلیغات تک خطی</b>\n\n"
         f"{description}\n\n"
-        f"💰 <b>تعرفه (بر اساس ۷ روز = {fa_number(weekly_price)} تومان):</b>\n"
+        f"💰 <b>تعرفه (روزانه {fa_number(weekly_price / 7)} تومان):</b>\n"
         f"• 7 روز — {fa_number(weekly_price)} تومان\n"
         f"• 14 روز — {fa_number(weekly_price * 2 * 0.90)} تومان (10٪ تخفیف)\n"
         f"• 21 روز — {fa_number(weekly_price * 3 * 0.80)} تومان (20٪ تخفیف)\n"
@@ -114,7 +114,7 @@ async def oneliner_get_link(message: Message, state: FSMContext, **kwargs) -> No
     wp = data["weekly_price"]
 
     await message.answer(
-        "⏳ <b>مدت تبلیغ را انتخاب کنید:</b>\n\n"
+        f"⏳ <b>مدت تبلیغ را انتخاب کنید:</b> (روزانه {fa_number(wp / 7)} تومان)\n\n"
         f"• 7 روز — {fa_number(wp)} تومان\n"
         f"• 14 روز — {fa_number(wp * 2 * 0.90)} تومان\n"
         f"• 21 روز — {fa_number(wp * 3 * 0.80)} تومان\n"
@@ -157,11 +157,7 @@ async def oneliner_get_duration(
         duration_discount=duration_discount,
         duration_discount_pct=discount_pct,
         price_after_duration=price_after_duration,
-        # قیمت نهایی = قیمت بعد از تخفیف مدت (کد تخفیف هنوز اعمال نشده)
         final_price=price_after_duration,
-        code_discount=0.0,
-        discount_code=None,
-        discount_applied=False,
     )
 
     summary = (
@@ -187,10 +183,7 @@ async def oneliner_get_duration(
     from aiogram.types import InlineKeyboardButton
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="🏷 کد تخفیف", callback_data="oneliner_discount"),
         InlineKeyboardButton(text="✅ تایید و ارسال", callback_data="oneliner_confirm_yes"),
-    )
-    builder.row(
         InlineKeyboardButton(text="❌ انصراف", callback_data="oneliner_confirm_no"),
     )
     await message.answer(summary, reply_markup=builder.as_markup())
@@ -199,102 +192,6 @@ async def oneliner_get_duration(
 @router.message(OnelineAdStates.waiting_duration)
 async def oneliner_duration_wrong(message: Message, **kwargs) -> None:
     await message.answer("⚠️ لطفاً یکی از گزینه‌های مدت را انتخاب کنید.")
-
-
-# ── کد تخفیف ──────────────────────────────────────────────────────────────────
-@router.callback_query(OnelineAdStates.confirm, F.data == "oneliner_discount")
-async def oneliner_ask_discount(
-    callback: CallbackQuery,
-    state: FSMContext,
-    **kwargs,
-) -> None:
-    data = await state.get_data()
-
-    if data.get("discount_applied"):
-        await callback.answer("⚠️ قبلاً یک کد تخفیف اعمال کردید.", show_alert=True)
-        return
-
-    await state.set_state(OnelineAdStates.waiting_discount)
-    await callback.message.answer(
-        "🏷 <b>کد تخفیف خود را وارد کنید:</b>",
-        reply_markup=cancel_kb(),
-    )
-    await callback.answer()
-
-
-@router.message(OnelineAdStates.waiting_discount, F.text & ~F.text.in_({"❌ انصراف"}))
-async def oneliner_apply_discount(
-    message: Message,
-    state: FSMContext,
-    **kwargs,
-) -> None:
-    data = await state.get_data()
-
-    if data.get("discount_applied"):
-        await message.answer("⚠️ قبلاً یک کد تخفیف اعمال کردید.")
-        await state.set_state(OnelineAdStates.confirm)
-        return
-
-    code = (message.text or "").strip().upper()
-    from datetime import datetime, timezone
-
-    async with AsyncSessionFactory() as session:
-        from app.repositories.discount_repo import DiscountRepository
-        repo = DiscountRepository(session)
-        dc = await repo.get_valid_code(code, datetime.now(timezone.utc))
-
-        if not dc:
-            await message.answer(
-                "❌ کد تخفیف نامعتبر یا منقضی شده است.\n"
-                "دوباره امتحان کنید."
-            )
-            return
-
-        # ← تخفیف روی قیمت بعد از تخفیف مدت اعمال می‌شود
-        price_after_duration = data["price_after_duration"]
-
-        if dc.type == "percent":
-            code_discount = price_after_duration * (dc.value / 100)
-        else:
-            code_discount = dc.value
-
-        final_price = max(0.0, price_after_duration - code_discount)
-
-        dc.used_count += 1
-        await session.commit()
-
-    await state.update_data(
-        code_discount=code_discount,
-        discount_code=code,
-        final_price=final_price,
-        discount_applied=True,
-    )
-    await state.set_state(OnelineAdStates.confirm)
-
-    data = await state.get_data()
-
-    summary = (
-        f"✅ <b>کد تخفیف اعمال شد!</b>\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"💰 قیمت پایه: {fa_number(data['base_price'])} تومان\n"
-    )
-    if data["duration_discount"] > 0:
-        summary += f"🏷 تخفیف مدت ({data['duration_discount_pct']}٪): -{fa_number(data['duration_discount'])} تومان\n"
-
-    summary += (
-        f"🏷 کد <code>{code}</code>: -{fa_number(code_discount)} تومان\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"✅ <b>مبلغ نهایی: {fa_number(final_price)} تومان</b>"
-    )
-
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
-    from aiogram.types import InlineKeyboardButton
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="✅ تایید و ارسال", callback_data="oneliner_confirm_yes"),
-        InlineKeyboardButton(text="❌ انصراف", callback_data="oneliner_confirm_no"),
-    )
-    await message.answer(summary, reply_markup=builder.as_markup())
 
 
 # ── Confirm ────────────────────────────────────────────────────────────────────
@@ -318,8 +215,8 @@ async def oneliner_confirmed(
             text=data["ad_text"],
             link=data["ad_link"],
             duration_days=data["duration_days"],
-            base_price=data["price_after_duration"],  # قیمت بعد از تخفیف مدت = قیمت پایه برای کد
-            discount_amount=data.get("code_discount", 0),
+            base_price=data["price_after_duration"],
+            discount_amount=0.0,
             final_price=data["final_price"],
         )
         await ad_svc.increment_ad_counter(user.id)
@@ -380,9 +277,6 @@ async def _send_oneliner_to_admin(
     )
     if data.get("duration_discount", 0) > 0:
         caption += f"🏷 تخفیف مدت: -{fa_number(data['duration_discount'])} تومان\n"
-    if data.get("code_discount", 0) > 0:
-        caption += f"🏷 کد <code>{data['discount_code']}</code>: -{fa_number(data['code_discount'])} تومان\n"
-
     caption += f"✅ <b>مبلغ نهایی: {fa_number(data['final_price'])} تومان</b>"
 
     try:
