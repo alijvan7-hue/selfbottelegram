@@ -140,12 +140,16 @@ class AdService:
     async def _calculate_banner_publish_time(self) -> datetime:
         queue_repo = QueueRepository(self._session)
         entry = await queue_repo.get_next_in_window(17, 20)
+        now = datetime.now(timezone.utc)
         if entry:
-            publish_at = entry.scheduled_time - timedelta(minutes=30)
-            if publish_at < datetime.now(timezone.utc):
-                publish_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+            scheduled_time = entry.scheduled_time
+            if scheduled_time.tzinfo is None:
+                scheduled_time = scheduled_time.replace(tzinfo=timezone.utc)
+            publish_at = scheduled_time - timedelta(minutes=30)
+            if publish_at < now:
+                publish_at = now + timedelta(minutes=5)
             return publish_at
-        return datetime.now(timezone.utc) + timedelta(minutes=30)
+        return now + timedelta(minutes=30)
 
     async def publish_ad(self, ad: Ad, bot: Bot) -> bool:
         if not config.channel_id:
