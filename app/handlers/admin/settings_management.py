@@ -38,6 +38,7 @@ _SETTING_LABELS: dict[str, str] = {
     "oneliner_description": "توضیحات اولیه تک‌خطی",
     "ad_limit_count": "محدودیت تعداد تبلیغ",
     "ad_limit_hours": "بازه زمانی محدودیت تبلیغ (ساعت)",
+    "help_text": "متن دستور /help",
 }
 
 
