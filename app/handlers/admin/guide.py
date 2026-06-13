@@ -100,6 +100,10 @@ async def admin_guide(message: Message, is_admin: bool, **kwargs) -> None:
         "<code>/set card_owner نام خود</code>\n"
         "<code>/set support_id @username</code>\n\n"
 
+        "💬 <u>متن راهنمای کاربران</u>\n"
+        "<code>/set help_text متن دلخواه</code>\n"
+        "این متن با دستور <code>/help</code> برای کاربران نمایش داده می‌شود.\n\n"
+
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "🎯 <b>مدیریت سطوح</b>\n"
         "━━━━━━━━━━━━\n"
@@ -148,7 +152,10 @@ async def admin_guide(message: Message, is_admin: bool, **kwargs) -> None:
         "<code>/set oneliner_description متن دلخواه</code>\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🔁 برای مشاهده دوباره این راهنما، هر زمان <code>/guide</code> را بزنید."
+        "🔁 برای مشاهده دوباره این راهنما، هر زمان <code>/guide</code> را بزنید.\n\n"
+        "ℹ️ کاربران از طریق «📊 وضعیت تبلیغات من» (داخل منوی تبلیغات) "
+        "می‌توانند وضعیت و زمان دقیق انتشار/پایان تبلیغ خود را ببینند، "
+        "و هنگام انتشار و پایان تبلیغ به‌صورت خودکار پیام دریافت می‌کنند."
     )
 
     await message.answer(text)
