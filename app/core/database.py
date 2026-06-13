@@ -62,8 +62,26 @@ async def create_all_tables() -> None:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("All database tables created.")
 
+    await _run_lightweight_migrations()
+
     # Seed default data
     await _seed_initial_data()
+
+
+async def _run_lightweight_migrations() -> None:
+    """تغییرات کوچک روی جدول‌های موجود که create_all پوشش نمی‌دهد."""
+    from sqlalchemy import text
+
+    statements = [
+        "ALTER TABLE memes ADD COLUMN is_masterpiece BOOLEAN DEFAULT 0 NOT NULL",
+    ]
+    async with engine.begin() as conn:
+        for stmt in statements:
+            try:
+                await conn.execute(text(stmt))
+            except Exception:
+                # ستون از قبل وجود دارد یا دیتابیس از نوع دیگری است
+                pass
 
 
 async def _seed_initial_data() -> None:
