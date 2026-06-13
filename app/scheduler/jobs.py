@@ -115,6 +115,24 @@ async def check_ad_publish_job(bot: Bot) -> None:
                         ad.id, u_id, ad.channel_message_id or 0
                     )
 
+                    # اطلاع به کاربر
+                    if owner:
+                        from app.utils.date_helper import time_remaining_fa, to_jalali_full
+                        try:
+                            text = (
+                                f"📢 <b>تبلیغ شما منتشر شد!</b>\n\n"
+                                f"🔢 شناسه: <code>#{ad.id}</code>\n"
+                                f"📅 زمان انتشار: {to_jalali_full(ad.published_at)}"
+                            )
+                            if ad.expires_at:
+                                text += (
+                                    f"\n🔚 پایان نمایش: {to_jalali_full(ad.expires_at)}"
+                                    f"\n⏳ {time_remaining_fa(ad.expires_at)} تا پایان نمایش"
+                                )
+                            await bot.send_message(owner.telegram_id, text)
+                        except Exception as exc:
+                            logger.warning("اطلاع انتشار تبلیغ ناموفق: %s", exc)
+
             # Re-schedule ads that have no publish_at yet (waiting for queue slot)
             from sqlalchemy import select
             from app.models.ad import Ad
@@ -167,6 +185,19 @@ async def check_ad_expiry_job(bot: Bot) -> None:
                 owner = await user_repo.get_by_id(ad.user_id)
                 u_id = owner.telegram_id if owner else 0
                 await log_svc.ad_expired(ad.id, u_id)
+
+                # اطلاع به کاربر
+                if owner:
+                    try:
+                        await bot.send_message(
+                            owner.telegram_id,
+                            f"🔚 <b>مدت نمایش تبلیغ شما به پایان رسید.</b>\n\n"
+                            f"🔢 شناسه: <code>#{ad.id}</code>\n"
+                            "تبلیغ از کانال حذف شد. در صورت تمایل می‌توانید "
+                            "تبلیغ جدیدی ثبت کنید. 🙌",
+                        )
+                    except Exception as exc:
+                        logger.warning("اطلاع پایان تبلیغ ناموفق: %s", exc)
 
             if expired_ads:
                 await session.commit()
