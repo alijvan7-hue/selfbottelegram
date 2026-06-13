@@ -19,6 +19,7 @@ def ads_menu_kb() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="📢 تبلیغات بنری")],
             [KeyboardButton(text="📢 تبلیغات تک خطی")],
+            [KeyboardButton(text="📊 وضعیت تبلیغات من")],
             [KeyboardButton(text="🔙 بازگشت")],
         ],
         resize_keyboard=True,
