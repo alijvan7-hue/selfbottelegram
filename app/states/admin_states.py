@@ -11,3 +11,8 @@ class AdminSettingsStates(StatesGroup):
 
 class AdminUserStates(StatesGroup):
     waiting_action = State()
+
+
+class AdminQueueStates(StatesGroup):
+    waiting_remove_id = State()
+    waiting_publish_id = State()
