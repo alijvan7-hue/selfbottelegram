@@ -20,6 +20,7 @@ class Meme(Base):
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     reviewer_message_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_masterpiece: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     channel_message_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
