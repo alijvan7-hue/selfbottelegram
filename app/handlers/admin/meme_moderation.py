@@ -78,7 +78,10 @@ async def meme_approve(callback: CallbackQuery, bot: Bot, **kwargs) -> None:
         owner_tid = owner.telegram_id if owner else None
 
     original = callback.message.caption or callback.message.text or ""
-    await _edit_msg(callback, original + "\n\n✅ <b>تایید شد</b>")
+    try:
+        await callback.message.delete()
+    except Exception:
+        await _edit_msg(callback, original + "\n\n✅ <b>تایید شد</b>")
     await callback.answer("✅ تایید شد")
 
     if owner_tid:
@@ -224,6 +227,7 @@ async def meme_master(callback: CallbackQuery, bot: Bot, **kwargs) -> None:
             await callback.answer(f"وضعیت: {meme.status}", show_alert=True)
             return
 
+        meme.is_masterpiece = True
         await meme_svc.approve(meme)
         owner = await user_svc.get_by_id(meme.user_id)
         tokens_before = owner.tokens if owner else 0
@@ -245,8 +249,11 @@ async def meme_master(callback: CallbackQuery, bot: Bot, **kwargs) -> None:
         await session.commit()
         owner_tid = owner.telegram_id if owner else None
 
-    original = callback.message.caption or callback.message.text or ""
-    await _edit_msg(callback, original + "\n\n🌟 <b>شاهکار — ۳ توکن اضافه شد</b>")
+    try:
+        await callback.message.delete()
+    except Exception:
+        original = callback.message.caption or callback.message.text or ""
+        await _edit_msg(callback, original + "\n\n🌟 <b>شاهکار — ۳ توکن اضافه شد</b>")
     await callback.answer("🌟 شاهکار!")
 
     if owner_tid:
