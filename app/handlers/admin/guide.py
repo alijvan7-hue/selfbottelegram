@@ -21,68 +21,81 @@ async def admin_guide(message: Message, is_admin: bool, **kwargs) -> None:
 
     text = (
         "📖 <b>راهنمای کامل ادمین</b>\n"
+        "✨ <i>همه‌چیز درباره مدیریت ربات</i>\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
+        "🎛 <b>پنل ادمین</b>\n"
+        "━━━━━━━━━━━━\n"
+        "با دستور <code>/admin</code> یا دکمه «🔐 پنل ادمین» وارد پنل می‌شوید. دکمه‌های پنل:\n"
+        "📋 صف انتشار — مشاهده و مدیریت نوبت انتشار\n"
+        "📢 تبلیغات پندینگ — تبلیغات در انتظار تایید\n"
+        "💰 درآمد · 📈 آمار — گزارش‌های مالی و عملکرد\n"
+        "👥 کاربران · ⚙️ تنظیمات · 🏷 تخفیف‌ها · 🎯 سطوح\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
         "👥 <b>مدیریت کاربران</b>\n"
         "━━━━━━━━━━━━\n"
-        "🔍 اطلاعات کاربر:\n"
+        "🔍 <b>اطلاعات کاربر</b>\n"
         "<code>/user 123456789</code>\n\n"
 
-        "🚫 بن کاربر:\n"
+        "🚫 <b>بن کاربر</b>\n"
         "<code>/ban 123456789 7d</code> — ۷ روز\n"
         "<code>/ban 123456789 30d</code> — ۳۰ روز\n"
         "<code>/ban 123456789 permanent</code> — دائمی\n\n"
 
-        "✅ رفع بن:\n"
+        "✅ <b>رفع بن</b>\n"
         "<code>/unban 123456789</code>\n\n"
 
-        "🪙 افزایش توکن:\n"
-        "<code>/addtoken 123456789 10</code>\n\n"
+        "🪙 <b>مدیریت توکن</b>\n"
+        "<code>/addtoken 123456789 10</code> — افزایش\n"
+        "<code>/removetoken 123456789 5</code> — کاهش\n\n"
 
-        "🪙 کاهش توکن:\n"
-        "<code>/removetoken 123456789 5</code>\n\n"
-
-        "📊 تنظیم محدودیت ارسال میم:\n"
+        "📊 <b>محدودیت ارسال میم</b>\n"
         "<code>/setlimit 123456789 5</code> — ۵ میم در روز\n"
         "<code>/setlimit 123456789 unlimited</code> — بی‌نهایت\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "📋 <b>مدیریت صف انتشار</b>\n"
         "━━━━━━━━━━━━\n"
-        "🚀 انتشار فوری میم:\n"
+        "🚀 <b>انتشار فوری</b>\n"
         "<code>/publish_now 42</code>\n\n"
 
-        "⏸ توقف صف:\n"
-        "<code>/pause_queue</code>\n\n"
+        "🔁 <b>بازچینی صف</b>\n"
+        "<code>/reorder_queue</code>\n\n"
 
-        "▶️ ادامه صف:\n"
+        "⏸ <b>توقف / ادامه صف</b>\n"
+        "<code>/pause_queue</code>\n"
         "<code>/resume_queue</code>\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "🔒 <b>قفل ربات</b>\n"
         "━━━━━━━━━━━━\n"
-        "🔒 قفل کردن:\n"
-        "<code>/lock</code>\n\n"
-
-        "🔓 باز کردن:\n"
-        "<code>/unlock</code>\n\n"
+        "<code>/lock</code> — قفل کردن\n"
+        "<code>/unlock</code> — باز کردن\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "⚙️ <b>تنظیمات سیستم</b>\n"
         "━━━━━━━━━━━━\n"
         "فرمت: <code>/set کلید مقدار</code>\n\n"
 
+        "⏰ <u>زمان‌بندی انتشار</u>\n"
         "<code>/set publish_start_hour 10</code>\n"
         "<code>/set publish_end_hour 23</code>\n"
         "<code>/set min_publish_interval 60</code>\n"
         "<code>/set max_publish_interval 120</code>\n"
-        "<code>/set daily_meme_limit 3</code>\n"
+        "<code>/set daily_meme_limit 3</code>\n\n"
+
+        "📢 <u>تعرفه تبلیغات بنری</u>\n"
         "<code>/set banner_price_12h 50000</code>\n"
         "<code>/set banner_price_24h 80000</code>\n"
         "<code>/set banner_price_72h 150000</code>\n"
-        "<code>/set banner_reply_price 20000</code>\n"
-        "<code>/set banner_pin_price 30000</code>\n"
-        "<code>/set oneliner_ad_price 30000</code>\n"
+        "<code>/set banner_reply_price 20000</code> — هزینه ریپلای خودکار\n"
+        "<code>/set banner_pin_price 30000</code> — هزینه پین پیام\n\n"
+
+        "📝 <u>تعرفه تبلیغات تک‌خطی</u>\n"
+        "<code>/set oneliner_ad_price 30000</code> — قیمت پایه هر ۷ روز\n\n"
+
+        "💳 <u>اطلاعات پرداخت و پشتیبانی</u>\n"
         "<code>/set card_number 6037991234567890</code>\n"
         "<code>/set card_owner نام خود</code>\n"
         "<code>/set support_id @username</code>\n\n"
@@ -90,45 +103,52 @@ async def admin_guide(message: Message, is_admin: bool, **kwargs) -> None:
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "🎯 <b>مدیریت سطوح</b>\n"
         "━━━━━━━━━━━━\n"
-        "➕ افزودن سطح:\n"
+        "➕ <b>افزودن سطح</b>\n"
         "<code>/addlevel مبتدی 5</code>\n"
         "<code>/addlevel افسانه‌ای 100</code>\n\n"
 
-        "🗑 حذف سطح:\n"
-        "<code>/dellevel 3</code> — شناسه سطح\n\n"
+        "🗑 <b>حذف سطح</b>\n"
+        "<code>/dellevel 3</code> — بر اساس شناسه سطح\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "🏷 <b>کدهای تخفیف</b>\n"
         "━━━━━━━━━━━━\n"
-        "➕ تخفیف درصدی:\n"
+        "➕ <b>تخفیف درصدی</b>\n"
         "<code>/adddiscount SALE20 percent 20</code>\n\n"
 
-        "➕ تخفیف مبلغ ثابت:\n"
+        "➕ <b>تخفیف مبلغ ثابت</b>\n"
         "<code>/adddiscount VIP fixed 10000</code>\n\n"
 
-        "➕ با محدودیت تعداد:\n"
+        "➕ <b>با محدودیت تعداد استفاده</b>\n"
         "<code>/adddiscount CODE50 percent 50 10</code>\n"
-        "<i>(آخرین عدد = حداکثر تعداد استفاده)</i>\n\n"
+        "<i>(عدد آخر = حداکثر تعداد استفاده)</i>\n\n"
 
-        "🗑 حذف کد:\n"
+        "🗑 <b>حذف کد</b>\n"
         "<code>/deldiscount SALE20</code>\n\n"
 
-        "🔄 فعال/غیرفعال:\n"
+        "🔄 <b>فعال / غیرفعال کردن</b>\n"
         "<code>/togglediscount SALE20</code>\n\n"
+
+        "💡 تخفیف روی <b>قیمت نهایی</b> تبلیغ (بنر + ریپلای + پین) اعمال می‌شود.\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "📊 <b>آمار و گزارش</b>\n"
         "━━━━━━━━━━━━\n"
-        "<code>/stats</code> — آمار کلی\n"
+        "<code>/stats</code> — آمار کلی ربات\n"
         "<code>/revenue</code> — گزارش درآمد\n"
         "<code>/logs 20</code> — ۲۰ لاگ اخیر\n"
-        "<code>/userlogs 123456789</code> — لاگ کاربر\n\n"
+        "<code>/userlogs 123456789</code> — لاگ مخصوص یک کاربر\n\n"
 
         "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🖼 <b>تنظیم عکس نمونه تک‌خطی</b>\n"
+        "🖼 <b>تبلیغات تک‌خطی — عکس و توضیحات نمونه</b>\n"
         "━━━━━━━━━━━━\n"
-        "عکس را با کپشن زیر ارسال کنید:\n"
-        "<code>/set_sample_image</code>"
+        "📸 عکس را با کپشن زیر ارسال کنید:\n"
+        "<code>/set_sample_image</code>\n\n"
+        "📝 توضیحات نمونه:\n"
+        "<code>/set oneliner_description متن دلخواه</code>\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔁 برای مشاهده دوباره این راهنما، هر زمان <code>/guide</code> را بزنید."
     )
 
     await message.answer(text)
