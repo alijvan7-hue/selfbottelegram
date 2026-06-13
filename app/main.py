@@ -38,6 +38,7 @@ def _register_routers(dispatcher: Dispatcher) -> None:
     from app.handlers.ads.menu import router as ads_menu_router
     from app.handlers.ads.banner import router as banner_router
     from app.handlers.ads.oneliner import router as oneliner_router
+    from app.handlers.ads.status import router as ads_status_router
     from app.handlers.admin.panel import router as admin_panel_router
     from app.handlers.admin.meme_moderation import router as meme_mod_router
     from app.handlers.admin.ad_moderation import router as ad_mod_router
@@ -57,6 +58,7 @@ def _register_routers(dispatcher: Dispatcher) -> None:
         support_router,
         payment_router,
         ads_menu_router,
+        ads_status_router,
         banner_router,
         oneliner_router,
         admin_panel_router,
