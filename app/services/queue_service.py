@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 import pytz
@@ -119,6 +119,43 @@ class QueueService:
             await self._repo.save(entry)
 
         logger.info("صف بازچینی شد. %s آیتم.", len(waiting))
+
+        # تبلیغات بنری زمان‌بندی‌شده را هم با صف جدید هماهنگ کن
+        await self._reorder_banner_ads(waiting)
+
+    # ── هماهنگ‌سازی تبلیغات بنری با صف جدید ────────────────────────────────
+    async def _reorder_banner_ads(self, waiting: List[PublishQueue]) -> None:
+        """
+        هر تبلیغ بنری باید نیم ساعت قبل از یک پست در بازه ساعت ۱۷ تا ۲۰ منتشر شود
+        (حداکثر یک تبلیغ در روز). ترتیب فعلی تبلیغات (بر اساس publish_at قبلی)
+        تا حد امکان حفظ می‌شود؛ فقط زمانشان با صف جدید هماهنگ می‌شود.
+        """
+        from app.repositories.ad_repo import AdRepository
+
+        ad_repo = AdRepository(self._session)
+        ads = await ad_repo.get_scheduled()
+        if not ads:
+            return
+
+        # برای هر روز، اولین پست داخل بازه ۱۷-۲۰ را پیدا کن
+        window_posts: dict[date, datetime] = {}
+        for entry in waiting:
+            hour = entry.scheduled_time.hour
+            if 17 <= hour < 20:
+                day = entry.scheduled_time.date()
+                if day not in window_posts or entry.scheduled_time < window_posts[day]:
+                    window_posts[day] = entry.scheduled_time
+
+        available_days = sorted(window_posts.keys())
+        if not available_days:
+            return
+
+        for i, ad in enumerate(ads):
+            if i >= len(available_days):
+                break  # تبلیغات بیشتر از روزهای دارای پست در بازه؛ بقیه دست‌نخورده می‌مانند
+            day = available_days[i]
+            ad.publish_at = window_posts[day] - timedelta(minutes=30)
+            await ad_repo.save(ad)
 
     # ── گرفتن بعدی قابل انتشار ───────────────────────────────────────────
     async def get_next_due(self, now: datetime) -> Optional[PublishQueue]:
